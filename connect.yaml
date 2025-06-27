@@ -1,0 +1,41 @@
+deployAs:
+  - name: enabler
+    applicationType: assets
+  - name: processor
+    applicationType: service
+    endpoint: /
+    scripts:
+      postDeploy: npm install && npm run connector:post-deploy
+      preUndeploy: npm install && npm run connector:pre-undeploy
+    configuration:
+      standardConfiguration:
+        - key: CTP_PROJECT_KEY
+          description: "commercetools project key descriptions"
+          required: true
+        - key: CTP_CLIENT_ID
+          description: "commercetools client ID with required scopes"
+          required: true
+        - key: CTP_AUTH_URL
+          description: "commercetools Auth UR L"
+          required: true
+          default: "https://auth.europe-west1.gcp.commercetools.com"
+        - key: CTP_API_URL
+          description: "commercetools API URL"
+          required: true
+          default: "https://api.europe-west1.gcp.commercetools.com"
+        - key: NOVALNET_PRIVATE_KEY
+          description: Novalnet unique identifier.
+          required: true
+        - key: NOVALNET_PUBLIC_KEY
+          description: Novalnet unique identifier.
+          required: true
+        - key: NOVALNET_TARIFF_KEY
+          description: Novalnet unique identifier.
+          required: true
+        - key: NOVALNET_WEBHOOK_URL
+          description: Novalnet unique identifier.
+          required: true
+      securedConfiguration:
+        - key: CTP_CLIENT_SECRET
+          description: "commercetools client secret"
+          required: true
