@@ -338,6 +338,8 @@ console.log('status-handler');
         payment_type: 'PREPAYMENT',
         amount: 10,
         currency: 'EUR',
+        return_url: 'https://poc-novalnetpayments.frontend.site/en/thank-you/',
+        error_return_url: 'https://poc-novalnetpayments.frontend.site/en/thank-you/',
       },
       custom: {
         input1: 'ctCart',
@@ -347,9 +349,14 @@ console.log('status-handler');
         input3: 'billing',
         inputval3: JSON.stringify(billingAddress),
       },
+      hosted_page: {
+        hide_payments: ['PRZELEWY24', 'DIRECT_DEBIT_ACH', 'BLIK'],
+        hide_blocks: ['ADDRESS_FORM', 'SHOP_INFO', 'LANGUAGE_MENU', 'HEADER', 'TARIFF'],
+        skip_pages: ['CONFIRMATION_PAGE', 'SUCCESS_PAGE', 'PAYMENT_PAGE']
+      }
     };
 
-  const novalnetResponse = await fetch('https://payport.novalnet.de/v2/payment', {
+  const novalnetResponse = await fetch('https://payport.novalnet.de/v2/seamless/payment', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
