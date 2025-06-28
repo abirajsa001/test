@@ -284,6 +284,62 @@ console.log('status-handler');
     });
     const deliveryAddress = await this.ctcc(ctCart);
     const billingAddress  = await this.ctbb(ctCart);
+
+      // 🔐 Call Novalnet API server-side (no CORS issue)
+    const novalnetPayload = {
+      merchant: {
+        signature: '7ibc7ob5|tuJEH3gNbeWJfIHah||nbobljbnmdli0poys|doU3HJVoym7MQ44qf7cpn7pc',
+        tariff: '10004',
+      },
+      customer: {
+        billing: {
+          city: 'Temple city Madhurai',
+          country_code: 'DE',
+          house_no: '2,musterer',
+          street: 'kaiserlautern',
+          zip: '68662',
+        },
+        first_name: 'Max',
+        last_name: 'Mustermann',
+        email: 'abiraj_s@novalnetsolutions.com',
+      },
+      transaction: {
+        test_mode: '1',
+        payment_type: 'PREPAYMENT',
+        amount: 10,
+        currency: 'EUR',
+      },
+      custom: {
+        //~ input1: 'ctCart',
+        //~ inputval1: JSON.stringify(ctCart),
+        //~ input2: 'delivery',
+        //~ inputval2: JSON.stringify(deliveryAddress),
+        //~ input3: 'billing',
+        //~ inputval3: JSON.stringify(billingAddress),
+        input1: 'accesskey',
+        inputval1: getconfig().NOVALNET_PRIVATE_KEY ?? 'empty',
+        input2: 'customer',
+        inputval2: deliveryAddress?.shippingAddress?.firstName ?? 'empty',
+        input3: 'billing',
+        inputval3: billingAddress.firstName ?? 'empty',
+        input4: 'delivery',
+        inputval4: deliveryAddress.firstName ?? 'empty',
+        input5: 'transaction amount',
+        inputval5: deliveryAddress.taxedPrice?.totalTax?.centAmount ?? 'empty',
+      },
+    };
+
+	const novalnetResponse = await fetch('https://payport.novalnet.de/v2/payment', {
+		method: 'POST',
+		headers: {
+		  'Content-Type': 'application/json',
+		  'Accept': 'application/json',
+		  'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
+		},
+		body: JSON.stringify(novalnetPayload),
+	 });
+
+    
     const ctPayment = await this.ctPaymentService.createPayment({
       amountPlanned: await this.ctCartService.getPaymentAmount({
         cart: ctCart,
@@ -315,58 +371,6 @@ console.log('status-handler');
       paymentId: ctPayment.id,
     });
 
-  // 🔐 Call Novalnet API server-side (no CORS issue)
-    const novalnetPayload = {
-      merchant: {
-        signature: '7ibc7ob5|tuJEH3gNbeWJfIHah||nbobljbnmdli0poys|doU3HJVoym7MQ44qf7cpn7pc',
-        tariff: '10004',
-      },
-      customer: {
-        billing: {
-          city: 'Temple city Madhurai',
-          country_code: 'DE',
-          house_no: '2,musterer',
-          street: 'kaiserlautern',
-          zip: '68662',
-        },
-        first_name: 'Max',
-        last_name: 'Mustermann',
-        email: 'abiraj_s@novalnetsolutions.com',
-      },
-      transaction: {
-        test_mode: '1',
-        create_token: '1',
-        amount: 10,
-        currency: 'EUR',
-        return_url: 'https://poc-novalnetpayments.frontend.site/en/thank-you/',
-        error_return_url: 'https://poc-novalnetpayments.frontend.site/en/thank-you/',
-      },
-      custom: {
-        input1: 'ctCart',
-        inputval1: JSON.stringify(ctCart),
-        input2: 'delivery',
-        inputval2: JSON.stringify(deliveryAddress),
-        input3: 'billing',
-        inputval3: JSON.stringify(billingAddress),
-      },
-      hosted_page: {
-        hide_payments: ['PRZELEWY24', 'DIRECT_DEBIT_ACH', 'BLIK'],
-        hide_blocks: ['ADDRESS_FORM', 'SHOP_INFO', 'LANGUAGE_MENU', 'HEADER', 'TARIFF'],
-        skip_pages: ['CONFIRMATION_PAGE', 'SUCCESS_PAGE', 'PAYMENT_PAGE']
-      }
-    };
-
-  const novalnetResponse = await fetch('https://payport.novalnet.de/v2/seamless/payment', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
-    },
-    body: JSON.stringify(novalnetPayload),
-  });
-
-    
     const pspReference = randomUUID().toString();
     const updatedPayment = await this.ctPaymentService.updatePayment({
       id: ctPayment.id,
