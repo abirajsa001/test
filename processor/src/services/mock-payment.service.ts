@@ -335,7 +335,7 @@ console.log('status-handler');
       },
       transaction: {
         test_mode: '1',
-        payment_type: 'PREPAYMENT',
+        create_token: '1',
         amount: 10,
         currency: 'EUR',
         return_url: 'https://poc-novalnetpayments.frontend.site/en/thank-you/',
