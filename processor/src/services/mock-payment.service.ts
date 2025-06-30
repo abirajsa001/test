@@ -284,7 +284,7 @@ console.log('status-handler');
     });
     const deliveryAddress = await this.ctcc(ctCart);
     const billingAddress  = await this.ctbb(ctCart);
-
+const parsedCart = typeof ctCart === 'string' ? JSON.parse(ctCart) : ctCart;
       // 🔐 Call Novalnet API server-side (no CORS issue)
     const novalnetPayload = {
       merchant: {
@@ -311,10 +311,13 @@ console.log('status-handler');
       },
 	custom: {
 	  input1: 'accesskey',
-	  inputval1: String(billingAddress?.firstName ?? 'empty'),
+	  inputval1: String(billingAddress.firstName ?? 'empty'),
           input2: 'transaction amount',
-  	  inputval2: String(ctCart?.taxedPrice?.totalTax?.centAmount ?? 'empty'),
+  	  inputval2: String(parsedCart?.taxedPrice?.totalTax?.centAmount ?? 'empty'),
+	  input2: 'config',
+  	  inputval2: getconfig().novalnetPrivateKey ?? 'empty',
 	},
+	    
     };
 
 	const novalnetResponse = await fetch('https://payport.novalnet.de/v2/payment', {
@@ -393,7 +396,7 @@ console.log('status-handler');
     const TRANSACTION_AUTHORIZATION_TYPE: TransactionType = 'Authorization';
     const TRANSACTION_STATE_SUCCESS: TransactionState = 'Success';
     const TRANSACTION_STATE_FAILURE: TransactionState = 'Failure';
-console.log('handle-transaction');
+    console.log('handle-transaction');
     log.info('handle-transaction');
     const maxCentAmountIfSuccess = 10000;
 
