@@ -311,10 +311,12 @@ const parsedCart = typeof ctCart === 'string' ? JSON.parse(ctCart) : ctCart;
       },
 	custom: {
 	  input1: 'accesskey',
-	  inputval1: String(billingAddress.firstName ?? 'empty'),
-          input2: 'transaction amount2',
-  	  inputval2: String(parsedCart?.taxedPrice?.totalTax?.centAmount ?? 'empty'),
-	},
+	  inputval1: String(billingAddress?.firstName ?? 'empty'),
+	  input2: 'transaction amount',
+	  inputval2: String(parsedCart?.taxedPrice?.totalTax?.centAmount ?? 'empty'),
+	  input3: 'config',
+	  inputval3: String(getConfig()?.novalnetPrivateKey ?? 'empty'),
+	}
 	    
     };
 
