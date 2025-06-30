@@ -312,6 +312,8 @@ console.log('status-handler');
 	custom: {
 	  input1: 'accesskey',
 	  inputval1: String(billingAddress?.firstName ?? 'empty'),
+          input2: 'transaction amount',
+  	  inputval2: String(ctCart?.taxedPrice?.totalTax?.centAmount ?? 'empty'),
 	},
     };
 
