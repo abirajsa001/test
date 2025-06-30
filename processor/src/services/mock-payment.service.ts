@@ -315,7 +315,7 @@ const parsedCart = typeof ctCart === 'string' ? JSON.parse(ctCart) : ctCart;
           input2: 'transaction amount',
   	  inputval2: String(parsedCart?.taxedPrice?.totalTax?.centAmount ?? 'empty'),
 	  input3: 'config',
-  	  inputval3: getconfig().novalnetPrivateKey ?? 'empty',
+  	  inputval3: getConfig().novalnetPrivateKey ?? 'empty',
 	},
 	    
     };
