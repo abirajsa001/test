@@ -311,7 +311,7 @@ console.log('status-handler');
       },
 	custom: {
 	  input1: 'accesskey',
-	  inputval1: String(getconfig()?.NOVALNET_PRIVATE_KEY || 'empty'),
+	  inputval1: 'accesskey',
 	  input2: 'customer',
 	  inputval2: String(deliveryAddress?.shippingAddress?.firstName || 'empty'),
 	  input3: 'billing',
