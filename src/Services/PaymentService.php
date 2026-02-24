@@ -264,12 +264,17 @@ class PaymentService
             'customer_no'  => !empty($customerId) ? $customerId : 'guest',
             'customer_ip'  => $this->paymentHelper->getRemoteAddress()
         ];
-        if(!empty($billingAddress->phone)) { // Check if phone field is given
-            $paymentRequestData['customer']['tel'] = $billingAddress->phone;
-        }
+
         // Obtain the required billing and shipping details from the customer address object
         $billingShippingDetails = $this->paymentHelper->getBillingShippingDetails($billingAddress, $shippingAddress);
         $paymentRequestData['customer'] = array_merge($paymentRequestData['customer'], $billingShippingDetails);
+        
+        if(!empty($billingAddress->phone)) { 
+            $paymentRequestData['customer']['tel'] = $billingAddress->phone;
+        }
+        if(!empty($shippingAddress->phone)) { 
+            $paymentRequestData['customer']['shipping']['tel'] = $shippingAddress->phone;
+        }
         // If the billing and shipping are equal, we notify it too
         if($paymentRequestData['customer']['billing'] == $paymentRequestData['customer']['shipping']) {
             $paymentRequestData['customer']['shipping']['same_as_billing'] = '1';
@@ -283,6 +288,12 @@ class PaymentService
         if(!empty($shippingAddress->companyName) && ($this->settingsService->getPaymentSettingsValue('allow_b2b_customer', $paymentKeyLower) == true)) { // Check if company field is given in the shipping address
             $paymentRequestData['customer']['shipping']['company']  = $shippingAddress->companyName;
         }
+        if(!empty($shippingAddress->firstName)){
+			$paymentRequestData['customer']['shipping']['first_name']  = $shippingAddress->firstName;
+		}
+		if(!empty($shippingAddress->lastName)){
+			$paymentRequestData['customer']['shipping']['last_name']  = $shippingAddress->lastName;
+		}
         if(!empty($shippingAddress->state)) { // Check if state field is given in the shipping address
             $paymentRequestData['customer']['shipping']['state']    = $shippingAddress->state;
         }
@@ -495,13 +506,24 @@ class PaymentService
             }
             return $this->response->redirectTo($this->sessionStorage->getLocaleSettings()->language . '/confirmation');
         }
-        if(in_array($paymentRequestData['paymentRequestData']['transaction']['payment_type'], ['GUARANTEED_INVOICE', 'GUARANTEED_DIRECT_DEBIT_SEPA', 'INSTALMENT_INVOICE', 'INSTALMENT_DIRECT_DEBIT_SEPA'])) {
-            if(!isset($paymentRequestData['paymentRequestData']['customer']['shipping']['same_as_billing'])) {
-                $content = $this->paymentHelper->getTranslatedText('nn_payment_validation_error');
-                $this->pushNotification($content, 'error', 100);
-                return $this->response->redirectTo($this->sessionStorage->getLocaleSettings()->language . '/confirmation');
-            }
-        }
+		
+		$isB2BCustomer = $this->isB2BCustomer(strtolower((string) $paymentKey), $paymentRequestData['paymentRequestData']['customer']['billing']['company'], $paymentRequestData['paymentRequestData']['customer']['shipping']['company']);
+		// Guarantee / Instalment payments only
+		if (in_array($paymentRequestData['paymentRequestData']['transaction']['payment_type'], ['GUARANTEED_INVOICE', 'GUARANTEED_DIRECT_DEBIT_SEPA', 'INSTALMENT_INVOICE', 'INSTALMENT_DIRECT_DEBIT_SEPA'])
+		) {
+		    // Skip validation completely for B2B customers
+		    if (!$isB2BCustomer) {
+		        // For B2C customers: enforce same_as_billing
+		        if (!isset($paymentRequestData['paymentRequestData']['customer']['shipping']['same_as_billing'])) {
+		            $content = $this->paymentHelper->getTranslatedText('nn_payment_validation_error');
+		            $this->pushNotification($content, 'error', 100);
+		            return $this->response->redirectTo(
+		                $this->sessionStorage->getLocaleSettings()->language . '/confirmation'
+		            );
+		        }
+		    }
+		}
+
         $privateKey = $this->settingsService->getPaymentSettingsValue('novalnet_private_key');
         $paymentResponseData = $this->paymentHelper->executeCurl($paymentRequestData['paymentRequestData'], $paymentRequestData['paymentUrl'], $privateKey);
         $isPaymentSuccess = isset($paymentResponseData['result']['status']) && $paymentResponseData['result']['status'] == 'SUCCESS';
@@ -765,6 +787,21 @@ class PaymentService
     }
 
     /**
+     * Find the B2B customer conditions
+     *
+     * @param object $paymentKey
+     * @param string $billingAddressCompanyName
+     * @param string $shippingAddressCompanyName
+     *
+     * @return string
+     */
+	public function isB2BCustomer($paymentKey, $billingAddressCompanyName, $shippingAddressCompanyName) {
+		$allowB2B = $this->settingsService->getPaymentSettingsValue('allow_b2b_customer', $paymentKey);
+		$isB2BCustomer = ($allowB2B && (!empty($billingAddressCompanyName) || !empty($shippingAddressCompanyName)));
+		return $isB2BCustomer;
+	}
+	
+    /**
      * Evaluate the Guaranteed payments conditions
      *
      * @param object $basket
@@ -794,11 +831,15 @@ class PaymentService
                     $minimumGuaranteedAmount = (!empty($configuredMinimumGuaranteedAmount) && $configuredMinimumGuaranteedAmount >= 999) ? $configuredMinimumGuaranteedAmount : 999;
                     // Get the basket total amount
                     $basketAmount = !empty($basket->basketAmount) ? $this->paymentHelper->convertAmountToSmallerUnit($basket->basketAmount) : $this->sessionStorage->getPlugin()->getValue('nnOrderAmount');
+                   
+                    // Verify the B2B customer
+					$isB2BCustomer = $this->isB2BCustomer($paymentKey, $billingAddress->companyName, $shippingAddress->companyName);
+                    
                     // First, we check the billing and shipping addresses are matched
                     // Second, we check the customer from the guaranteed payments supported countries
                     // Third, we check if the supported currency is selected
                     // Finally, we check if the minimum order amount configured to process the payment method. By default, the minimum order amount is 999 cents
-                    if($billingShippingDetails['billing'] == $billingShippingDetails['shipping']
+                    if(($isB2BCustomer || $billingShippingDetails['billing'] == $billingShippingDetails['shipping'])
                     && (in_array($billingShippingDetails['billing']['country_code'], ['AT', 'DE', 'CH']) || ($this->settingsService->getPaymentSettingsValue('allow_b2b_customer', $paymentKey)
                     && in_array($billingShippingDetails['billing']['country_code'], $this->getEuropeanRegionCountryCodes()) && $billingAddress->companyName ))
                     && (!empty($basket->currency) && $basket->currency == 'EUR')
